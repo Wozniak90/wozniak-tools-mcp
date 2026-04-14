@@ -1,0 +1,17 @@
+{
+  "tools": [
+    {
+      "id": "devops-integrator",
+      "name": "DevOps Integrator",
+      "description": "Standalone webová aplikace pro přehled Azure DevOps work itemů. Zobrazuje úkoly přiřazené tobě, tvoji aktivitu a umožňuje přidávat osobní poznámky k itemům — vše lokálně, bez cloudu.",
+      "github": "https://github.com/Wozniak90/devops-integrator",
+      "requirements": {
+        "node": ">=18",
+        "os": ["windows", "macos", "linux"]
+      },
+      "port": 4242,
+      "start_command": "node server.js",
+      "tags": ["azure-devops", "productivity", "local", "nodejs"]
+    }
+  ]
+}
