@@ -3,6 +3,7 @@
  * @wozniak90/tools setup
  *
  * Automaticky nakonfiguruje MCP server do detekovaných AI klientů:
+ *   - GitHub Copilot CLI
  *   - Claude Desktop
  *   - Cursor
  *   - VS Code (Copilot)
@@ -44,6 +45,32 @@ function mergeServer(config, serverKey, entry) {
   }
   config.mcpServers[serverKey] = entry;
   return true;
+}
+
+// ─── GitHub Copilot CLI ────────────────────────────────────────────────────────
+
+function getCopilotCliConfigPath() {
+  return join(homedir(), ".copilot", "mcp.json");
+}
+
+function setupCopilotCli() {
+  const configPath = getCopilotCliConfigPath();
+  const copilotDir = join(homedir(), ".copilot");
+
+  const installed = existsSync(copilotDir);
+  if (!installed) {
+    return { status: "not_found", client: "GitHub Copilot CLI" };
+  }
+
+  const config = readJson(configPath) || {};
+  const added = mergeServer(config, SERVER_KEY, MCP_ENTRY);
+
+  if (!added) {
+    return { status: "already_configured", client: "GitHub Copilot CLI", path: configPath };
+  }
+
+  writeJson(configPath, config);
+  return { status: "configured", client: "GitHub Copilot CLI", path: configPath };
 }
 
 // ─── Claude Desktop ────────────────────────────────────────────────────────────
@@ -167,7 +194,7 @@ function main() {
   console.log("Konfiguruji @wozniak90/tools do AI klientů...");
   console.log("");
 
-  const results = [setupClaude(), setupCursor(), setupVSCode()];
+  const results = [setupCopilotCli(), setupClaude(), setupCursor(), setupVSCode()];
   results.forEach(printResult);
 
   const configured = results.filter((r) => r.status === "configured");
