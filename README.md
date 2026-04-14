@@ -23,7 +23,7 @@ Přidej do `claude_desktop_config.json` (nebo v Settings → Integrations):
   "mcpServers": {
     "wozniak-tools": {
       "command": "npx",
-      "args": ["-y", "@wozniak/tools"]
+      "args": ["-y", "@wozniak90/tools"]
     }
   }
 }
@@ -37,7 +37,7 @@ Přidej do `.cursor/mcp.json` v projektu nebo do globálního nastavení:
   "mcpServers": {
     "wozniak-tools": {
       "command": "npx",
-      "args": ["-y", "@wozniak/tools"]
+      "args": ["-y", "@wozniak90/tools"]
     }
   }
 }
@@ -50,14 +50,14 @@ Přidej do `~/.copilot/mcp-servers.json`:
 {
   "wozniak-tools": {
     "command": "npx",
-    "args": ["-y", "@wozniak/tools"]
+    "args": ["-y", "@wozniak90/tools"]
   }
 }
 ```
 
 ### Smithery (jednoduchá instalace)
 ```bash
-npx -y @smithery/cli install @wozniak/tools --client claude
+npx -y @smithery/cli install @wozniak90/tools --client claude
 ```
 
 ---
