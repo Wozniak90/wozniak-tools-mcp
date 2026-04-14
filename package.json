@@ -1,11 +1,12 @@
 {
   "name": "@wozniak90/tools",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "MCP server — katalog a instalátor nástrojů Jakuba Wozniaka",
   "main": "index.js",
   "type": "module",
   "bin": {
-    "wozniak-tools": "index.js",
+    "tools": "cli.js",
+    "wozniak-tools": "cli.js",
     "wozniak-tools-setup": "setup.js"
   },
   "scripts": {

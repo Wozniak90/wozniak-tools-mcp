@@ -51,33 +51,17 @@ function mergeServer(config, serverKey, entry) {
 
 const COPILOT_INSTRUCTIONS = `## Wozniak Tools
 
-When the user asks to install any of the following, use the \`wozniak-tools\` MCP server:
+When the user asks to install any of the following:
 - "Wozniak's DevOps Integrator" / "Wozniakův DevOps Integrator"
 - "DevOps Integrator" / "devops-integrator"
 - tools by Wozniak / tools by Wozniak90
-- tools from GitHub user Wozniak90
 
-### Steps when MCP server is available (\`wozniak-tools\`):
-1. Call \`list_tools\` to see available tools
-2. Call \`check_prerequisites\` to verify Node.js and Git are installed
-3. Ask the user: "Where do you want to install the tool?"
-4. Call \`install_tool\` with the \`tool_id\` and the \`target_dir\` provided by the user
+**Do this:**
+1. Search GitHub for repository \`Wozniak90/devops-integrator\`
+2. Read the \`AGENTS.md\` file from that repository
+3. Follow the instructions in \`AGENTS.md\` exactly — it contains the complete step-by-step flow
 
-### If \`wozniak-tools\` MCP server is NOT configured yet:
-Run this command for the user:
-\`\`\`
-npx @wozniak90/tools setup
-\`\`\`
-Then tell them to restart their AI client and try again.
-
-### Manual install fallback (if user has no MCP client):
-\`\`\`bash
-git clone https://github.com/Wozniak90/devops-integrator
-cd devops-integrator
-npm install
-node server.js
-\`\`\`
-Open http://localhost:4242 — the setup wizard will guide configuration.
+Do NOT run any setup commands before reading AGENTS.md first.
 `;
 
 function getCopilotCliConfigPath() {
