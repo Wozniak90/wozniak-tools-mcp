@@ -268,16 +268,21 @@ server.tool(
 // ─── TOOL: install_tool ───────────────────────────────────────────────────────
 server.tool(
   "install_tool",
-  "Nainstaluje nástroj: naklonuje repo z GitHubu, spustí npm install a volitelně pip install. Vrátí cestu k instalaci a instrukce ke spuštění.",
+  `Nainstaluje nástroj z GitHubu: naklonuje repo, spustí npm install a vrátí instrukce ke spuštění.
+
+DŮLEŽITÉ: Před zavoláním tohoto nástroje se vždy zeptej uživatele:
+1. "Kam chceš nástroj nainstalovat?" (cílová složka, např. C:\\Tools\\devops-integrator)
+2. Potvrd, že chce stáhnout z internetu (GitHub)
+
+Nikdy nevolej tento nástroj bez potvrzeného target_dir od uživatele.`,
   {
     tool_id: z
       .string()
-      .describe('ID nástroje (např. "devops-integrator" nebo "email-agent")'),
+      .describe('ID nástroje (např. "devops-integrator")'),
     target_dir: z
       .string()
-      .optional()
       .describe(
-        'Cílová složka pro instalaci. Výchozí: aktuální adresář / název nástroje. Příklad: "C:\\\\Tools\\\\devops-integrator"'
+        'Cílová složka pro instalaci — POVINNÉ. Zeptej se uživatele, kam chce nástroj nainstalovat. Příklad: "C:\\\\Tools\\\\devops-integrator" nebo "~/tools/devops-integrator"'
       ),
   },
   async ({ tool_id, target_dir }) => {
@@ -320,10 +325,8 @@ node server.js
       };
     }
 
-    // Určení cílové složky
-    const installDir = target_dir
-      ? resolve(target_dir)
-      : resolve(process.cwd(), tool.id);
+    // Určení cílové složky — target_dir je povinný
+    const installDir = resolve(target_dir);
 
     // Kontrola, zda složka neexistuje nebo je prázdná
     if (existsSync(installDir)) {

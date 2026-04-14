@@ -1,6 +1,6 @@
 {
   "name": "@wozniak90/tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server — katalog a instalátor nástrojů Jakuba Wozniaka",
   "main": "index.js",
   "type": "module",
