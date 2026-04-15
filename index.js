@@ -430,6 +430,121 @@ Pro reset konfigurace smaž \`data/config.json\` nebo \`data/devops-config.json\
   }
 );
 
+// ─── query_devops tool ────────────────────────────────────────────────────────
+
+const DEVOPS_BASE = process.env.DEVOPS_INTEGRATOR_URL || 'http://localhost:4242';
+
+async function devopsCall(apiPath) {
+  try {
+    const res = await fetch(`${DEVOPS_BASE}${apiPath}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  } catch (e) {
+    if (e.cause?.code === 'ECONNREFUSED' || e.message?.includes('ECONNREFUSED')) {
+      throw new Error('DevOps Integrator není spuštěn (http://localhost:4242).\nSpusť: npm start ve složce devops-integrator.');
+    }
+    throw e;
+  }
+}
+
+server.tool(
+  'query_devops',
+  `Dotáže se na lokálně běžící DevOps Integrator (http://localhost:4242) a vrátí shrnutí work itemů.
+
+Dostupné akce:
+- summary       → pracovní přehled (počty dle projektu, priority, stale)
+- assigned      → seznam přiřazených úkolů s priority score
+- stale         → stagnující úkoly (nezměněné > 14 dní)
+- standup       → automatický standup text pro dnešní den
+- high_priority → top 10 položek s nejvyšším priority score
+
+Vyžaduje běžící DevOps Integrator (node server.js nebo npm start).`,
+  {
+    action:  z.enum(['summary', 'assigned', 'stale', 'standup', 'high_priority'])
+              .describe('Typ dotazu'),
+    project: z.string().optional().describe('Filtr dle projektu (volitelné)')
+  },
+  async ({ action, project }) => {
+    const data = await devopsCall('/api/devops/items');
+
+    const filterProject = (items) =>
+      project
+        ? items.filter(i => i.project?.includes(project) || i.projectLabel?.includes(project))
+        : items;
+
+    const typeEmoji = (t) =>
+      ({ Bug: '🐛', 'User Story': '📖', Task: '✅', Feature: '🚀', Epic: '🏔️' }[t] || '📌');
+
+    const itemLine = (i) =>
+      `- ${typeEmoji(i.type)} **${i.title}** [score: ${i.priorityScore ?? '?'}] | ${i.state} | ${i.projectLabel || i.project || '?'} | ${i.staleDays ?? '?'}d`;
+
+    if (action === 'summary') {
+      const items = filterProject(data.assigned || []);
+      const byProj = {}, staleCount = items.filter(i => i.staleLevel === 'stale').length;
+      for (const i of items) { const p = i.projectLabel || i.project || '?'; byProj[p] = (byProj[p] || 0) + 1; }
+      const lines = [
+        `## 📊 DevOps přehled\n`,
+        `**Přiřazeno celkem:** ${items.length} | 🧊 Stale: ${staleCount}`,
+        `\n**Dle projektu:**`,
+        ...Object.entries(byProj).map(([p, n]) => `- ${p}: ${n}`)
+      ];
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    }
+
+    if (action === 'assigned') {
+      const items = filterProject(data.assigned || [])
+        .sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0))
+        .slice(0, 20);
+      if (!items.length) return { content: [{ type: 'text', text: 'Žádné přiřazené úkoly.' }] };
+      const lines = [`## ✅ Přiřazené úkoly (${items.length})\n`, ...items.map(itemLine)];
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    }
+
+    if (action === 'stale') {
+      const items = filterProject([...(data.assigned || []), ...(data.following || [])])
+        .filter((i, idx, arr) => arr.findIndex(x => x.id === i.id) === idx)
+        .filter(i => i.staleLevel === 'stale' || i.staleLevel === 'warning')
+        .sort((a, b) => (b.staleDays ?? 0) - (a.staleDays ?? 0));
+      if (!items.length) return { content: [{ type: 'text', text: 'Žádné stagnující úkoly.' }] };
+      const lines = [`## 🧊 Stagnující úkoly (${items.length})\n`, ...items.map(i => `${itemLine(i)} ← ${i.staleDays}d`)];
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    }
+
+    if (action === 'high_priority') {
+      const items = filterProject([...(data.assigned || []), ...(data.following || [])])
+        .filter((i, idx, arr) => arr.findIndex(x => x.id === i.id) === idx)
+        .sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0))
+        .slice(0, 10);
+      if (!items.length) return { content: [{ type: 'text', text: 'Žádné položky.' }] };
+      const lines = [`## 🔥 Top priority (${items.length})\n`, ...items.map(itemLine)];
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    }
+
+    if (action === 'standup') {
+      const since    = Date.now() - 86400000;
+      const done     = (data.activity  || []).filter(i => new Date(i.changedDate) >= since);
+      const todo     = filterProject(data.assigned || [])
+        .filter(i => ['Active', 'In Progress', 'New'].includes(i.state))
+        .sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0))
+        .slice(0, 6);
+      const blocks   = filterProject(data.assigned || [])
+        .filter(i => i.staleLevel === 'stale' || i.staleLevel === 'warning')
+        .slice(0, 3);
+
+      const lines = [
+        `## 🗣️ Standup — ${new Date().toLocaleDateString('cs-CZ')}\n`,
+        `### Včera`,
+        ...( done.length ? done.map(i => `- ${typeEmoji(i.type)} ${i.title}`) : ['- Žádná aktivita'] ),
+        `\n### Dnes`,
+        ...( todo.length ? todo.map(i => `- ${typeEmoji(i.type)} ${i.title} [${i.priorityScore ?? '?'}]`) : ['- Nic naplánováno'] ),
+        `\n### Bloky`,
+        ...( blocks.length ? blocks.map(i => `- ⚠️ ${i.title} (${i.staleDays}d beze změny)`) : ['- Žádné bloky 🟢'] )
+      ];
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    }
+  }
+);
+
 // ─── Start serveru ────────────────────────────────────────────────────────────
 const transport = new StdioServerTransport();
 await server.connect(transport);
